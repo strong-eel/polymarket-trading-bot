@@ -26,54 +26,51 @@ The dashboard runs locally at `http://localhost:8765` and shows:
 
 ## Setup
 
-### 1. Install Bullpen CLI
+### Option A — One command (recommended)
 
+```bash
+git clone https://github.com/strong-eel/polymarket-trading-bot.git
+cd polymarket-trading-bot
+./setup.sh
+```
+
+`setup.sh` installs the Bullpen CLI, configures the Claude Code auto-wrap hook, and prints the exact next steps. Then just follow the prompts.
+
+### Option B — With Claude Code (easiest)
+
+1. Clone the repo and open it in [Claude Code](https://claude.ai/code)
+2. Ask: *"help me set up this trading bot"*
+3. Claude reads `CLAUDE.md` and walks you through everything interactively
+
+### Manual Setup
+
+#### 1. Install Bullpen CLI
 ```bash
 brew install bullpenfi/tap/bullpen
 ```
 
-### 2. Log in to Bullpen
-
+#### 2. Log in to Bullpen
 ```bash
 bullpen login
 ```
 
-### 3. Fund your Polymarket wallet
-
+#### 3. Fund your Polymarket wallet
 ```bash
 bullpen deposit
 ```
-
-This opens the Bullpen web app. Deposit USDC — then wrap it to pUSD (the collateral used for trading):
-
+Deposit USDC via the web app, then wrap it to pUSD (required for trading):
 ```bash
 bullpen polymarket wrap <amount> --yes
 ```
 
-### 4. Find traders to copy
-
-Browse the leaderboard to find top traders:
-
+#### 4. Find traders to copy
 ```bash
 bullpen polymarket data leaderboard --time-period 7d --sort copyability --hide-farmers --limit 10
 ```
 
-### 5. Start copy-trading
-
+#### 5. Start copy-trading
 ```bash
-bullpen tracker copy start <TRADER_ADDRESS> --preset recommended
-```
-
-Recommended settings used in this setup:
-- Sizing mode: `fixed` — $2 per trade (safe floor above Polymarket's $1 minimum)
-- Min source trade size: $1 (catches even small probe trades)
-- Exit behavior: `mirror_sells` (auto-exits when the trader exits)
-- Execution mode: `auto` (no confirmation needed)
-
-To apply these manually:
-
-```bash
-bullpen tracker copy start <ADDRESS> \
+bullpen tracker copy start <TRADER_ADDRESS> \
   --sizing-mode fixed \
   --fixed-amount 2 \
   --min-trade-size 1 \
@@ -82,13 +79,16 @@ bullpen tracker copy start <ADDRESS> \
   --yes
 ```
 
-### 6. Start the dashboard
+Recommended settings:
+- **Fixed $2 per trade** — safe floor above Polymarket's $1 minimum
+- **Min source trade size $1** — catches even small probe trades from followed traders
+- **Mirror sells** — auto-exits when the trader exits
+- **Auto execution** — no manual confirmation needed
 
+#### 6. Start the dashboard
 ```bash
-cd bullpen-dashboard
-./start.sh
+cd bullpen-dashboard && ./start.sh
 ```
-
 Open `http://localhost:8765` in your browser.
 
 ## Automating Redeems and Wraps
