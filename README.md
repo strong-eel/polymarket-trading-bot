@@ -11,6 +11,8 @@ A fully automated Polymarket copy-trading setup powered by the [Bullpen CLI](htt
 
 ## Dashboard Preview
 
+![The Iron Bank Trading Floor](docs/dashboard.png)
+
 The dashboard runs locally at `http://localhost:8765` and shows:
 - pUSD balance and open positions with live P&L
 - Pending copy trades waiting for confirmation (with countdown timer)
