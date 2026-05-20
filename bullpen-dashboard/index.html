@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bullpen Copy Trading Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0d1117; color: #e6edf3; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; }
+
+  header { background: #161b22; border-bottom: 1px solid #30363d; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+  header h1 { font-size: 18px; font-weight: 600; color: #58a6ff; }
+  header h1 span { color: #3fb950; }
+  .header-right { display: flex; align-items: center; gap: 12px; font-size: 12px; color: #8b949e; }
+  .refresh-badge { background: #21262d; border: 1px solid #30363d; border-radius: 20px; padding: 4px 12px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #3fb950; display: inline-block; margin-right: 6px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .container { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+
+  .grid-top { display: grid; grid-template-columns: 220px 1fr 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 18px; }
+  .card-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: #8b949e; margin-bottom: 8px; }
+  .card-value { font-size: 28px; font-weight: 700; color: #3fb950; }
+  .card-value.blue { color: #58a6ff; }
+  .card-value.yellow { color: #e3b341; }
+  .card-value.red { color: #f85149; }
+  .card-sub { font-size: 12px; color: #8b949e; margin-top: 4px; }
+
+  h2 { font-size: 14px; font-weight: 600; color: #e6edf3; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .badge { font-size: 11px; background: #21262d; border: 1px solid #30363d; border-radius: 20px; padding: 2px 8px; color: #8b949e; }
+  .badge.alert { background: #3d1f00; border-color: #e3b341; color: #e3b341; }
+
+  .section { margin-bottom: 24px; }
+
+  .pending-grid { display: grid; gap: 12px; }
+  .pending-card { background: #161b22; border: 1px solid #e3b341; border-radius: 10px; padding: 16px; display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: start; }
+  .pending-card .market { font-size: 14px; font-weight: 600; color: #e6edf3; margin-bottom: 4px; }
+  .pending-card .event { font-size: 12px; color: #8b949e; margin-bottom: 8px; }
+  .pending-card .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tag { font-size: 11px; padding: 3px 8px; border-radius: 4px; border: 1px solid #30363d; background: #21262d; }
+  .tag.buy { border-color: #3fb950; color: #3fb950; }
+  .tag.sell { border-color: #f85149; color: #f85149; }
+  .tag.outcome { color: #58a6ff; border-color: #58a6ff; }
+  .tag.price { color: #e3b341; border-color: #e3b341; }
+  .tag.amount { color: #bc8cff; border-color: #bc8cff; }
+  .pending-actions { display: flex; flex-direction: column; gap: 8px; }
+  .btn { padding: 8px 16px; border-radius: 6px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; white-space: nowrap; }
+  .btn:hover { opacity: 0.8; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-confirm { background: #238636; color: #fff; }
+  .btn-reject { background: #21262d; color: #f85149; border: 1px solid #f85149; }
+  .countdown { font-size: 11px; color: #e3b341; text-align: center; margin-top: 4px; }
+  .countdown.urgent { color: #f85149; }
+
+  .empty { color: #8b949e; font-size: 13px; padding: 20px; text-align: center; background: #161b22; border: 1px solid #30363d; border-radius: 10px; }
+
+  table { width: 100%; border-collapse: collapse; background: #161b22; border: 1px solid #30363d; border-radius: 10px; overflow: hidden; }
+  th { background: #21262d; color: #8b949e; font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; padding: 10px 14px; text-align: left; font-weight: 500; }
+  td { padding: 10px 14px; border-top: 1px solid #21262d; font-size: 13px; }
+  tr:hover td { background: #1c2128; }
+  .status-active { color: #3fb950; font-weight: 600; }
+  .status-expired { color: #6e7681; }
+  .status-confirm { color: #e3b341; font-weight: 600; }
+  .status-skipped { color: #8b949e; }
+  .status-done { color: #58a6ff; }
+  .addr { font-family: monospace; font-size: 11px; color: #8b949e; }
+  .trader-name { font-weight: 600; color: #58a6ff; }
+  .buy-label { color: #3fb950; font-weight: 600; }
+  .sell-label { color: #f85149; font-weight: 600; }
+
+  .error-box { background: #3d1f00; border: 1px solid #f85149; border-radius: 8px; padding: 12px 16px; color: #f85149; font-size: 13px; margin-bottom: 16px; }
+
+  #last-updated { font-size: 11px; color: #8b949e; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Bullpen <span>Copy Trading</span> Dashboard</h1>
+  <div class="header-right">
+    <span><span class="dot"></span>Live</span>
+    <span class="refresh-badge">Auto-refresh 30s</span>
+    <span id="last-updated">Loading...</span>
+  </div>
+</header>
+
+<div class="container">
+  <div id="error-container"></div>
+
+  <div class="grid-top">
+    <div class="card">
+      <div class="card-label">pUSD Balance</div>
+      <div class="card-value" id="balance">—</div>
+      <div class="card-sub">Polymarket wallet</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Active Subscriptions</div>
+      <div class="card-value blue" id="stat-active">—</div>
+      <div class="card-sub">Traders being copied</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Pending Trades</div>
+      <div class="card-value yellow" id="stat-pending">—</div>
+      <div class="card-sub">Awaiting your approval</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Total Executions</div>
+      <div class="card-value" id="stat-executions">—</div>
+      <div class="card-sub">All-time copy trades</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Open Positions</div>
+      <div class="card-value blue" id="stat-positions">—</div>
+      <div class="card-sub" id="stat-positions-pnl">Awaiting results</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Active Positions <span class="badge" id="positions-count">0</span></h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Market</th>
+          <th>Outcome</th>
+          <th>Shares</th>
+          <th>Entry</th>
+          <th>Current</th>
+          <th>Value</th>
+          <th>P&L</th>
+          <th>ROE</th>
+        </tr>
+      </thead>
+      <tbody id="positions-body">
+        <tr><td colspan="8" style="text-align:center;color:#8b949e">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Pending Trades <span class="badge alert" id="pending-count">0</span></h2>
+    <div class="pending-grid" id="pending-container">
+      <div class="empty">Loading...</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Copy Trade Subscriptions <span class="badge" id="sub-count">0</span></h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Trader</th>
+          <th>Address</th>
+          <th>Status</th>
+          <th>Trade Size</th>
+          <th>Budget Cap</th>
+          <th>Execution</th>
+          <th>Exit</th>
+          <th>Min Time Left</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody id="subscriptions-body">
+        <tr><td colspan="8" style="text-align:center;color:#8b949e">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Execution History <span class="badge" id="exec-count">0</span></h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Market</th>
+          <th>Outcome</th>
+          <th>Side</th>
+          <th>Price</th>
+          <th>Trader Size</th>
+          <th>Copy Amount</th>
+          <th>Status</th>
+          <th>Detected</th>
+        </tr>
+      </thead>
+      <tbody id="executions-body">
+        <tr><td colspan="8" style="text-align:center;color:#8b949e">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8765';
+let pendingTimers = {};
+
+function fmt(val) {
+  const n = parseFloat(val);
+  if (isNaN(n)) return val;
+  return n < 1 ? (n * 100).toFixed(1) + '¢' : '$' + n.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+function timeAgo(utcStr) {
+  const d = new Date(utcStr.replace(' UTC','Z'));
+  const diff = Math.floor((Date.now() - d) / 1000);
+  if (diff < 60) return diff + 's ago';
+  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  return Math.floor(diff/3600) + 'h ago';
+}
+
+function secondsUntil(utcStr) {
+  const d = new Date(utcStr.replace(' UTC','Z'));
+  return Math.floor((d - Date.now()) / 1000);
+}
+
+function statusClass(s) {
+  const map = { Active:'status-active', Expired:'status-expired', AwaitingConfirm:'status-confirm', Skipped:'status-skipped', Confirmed:'status-done', Executed:'status-done', Completed:'status-done' };
+  return map[s] || '';
+}
+
+async function fetchAll() {
+  try {
+    const [balances, subs, pending, executions, positions] = await Promise.all([
+      fetch(`${API}/api/balances`).then(r=>r.json()),
+      fetch(`${API}/api/subscriptions`).then(r=>r.json()),
+      fetch(`${API}/api/pending`).then(r=>r.json()),
+      fetch(`${API}/api/executions`).then(r=>r.json()),
+      fetch(`${API}/api/positions`).then(r=>r.json()),
+    ]);
+
+    document.getElementById('error-container').innerHTML = '';
+
+    // Balance
+    const poly = balances.chains?.find(c => c.label === 'Polymarket');
+    const pusd = poly?.items?.find(i => i.symbol === 'pUSD');
+    document.getElementById('balance').textContent = pusd ? '$' + parseFloat(pusd.value_usd).toFixed(2) : '$0.00';
+
+    // Stats
+    const activeSubs = Array.isArray(subs) ? subs.filter(s => s.status !== 'Stopped').length : 0;
+    document.getElementById('stat-active').textContent = activeSubs;
+    document.getElementById('stat-pending').textContent = Array.isArray(pending) ? pending.length : 0;
+    document.getElementById('stat-executions').textContent = Array.isArray(executions) ? executions.length : 0;
+
+    // Positions
+    const posArr = positions.positions || (Array.isArray(positions) ? positions : []);
+    const posSummary = positions.summary || {};
+    renderPositions(posArr, posSummary);
+
+    // Pending trades
+    renderPending(Array.isArray(pending) ? pending : []);
+
+    // Subscriptions
+    renderSubscriptions(Array.isArray(subs) ? subs : []);
+
+    // Executions
+    renderExecutions(Array.isArray(executions) ? executions : []);
+
+    document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+  } catch (e) {
+    document.getElementById('error-container').innerHTML = `<div class="error-box">Could not connect to server. Make sure server.py is running: <code>python3 server.py</code></div>`;
+  }
+}
+
+function renderPositions(positions, summary) {
+  document.getElementById('positions-count').textContent = positions.length;
+  const tbody = document.getElementById('positions-body');
+
+  if (!positions.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#8b949e">No open positions — waiting for copy trades to execute.</td></tr>';
+    document.getElementById('stat-positions').textContent = '0';
+    document.getElementById('stat-positions-pnl').textContent = 'No open bets';
+    return;
+  }
+
+  const totalPnl = summary.unrealized_pnl || 0;
+  const totalVal = summary.wallet_value || 0;
+  document.getElementById('stat-positions').textContent = positions.length;
+  const pnlSign = totalPnl >= 0 ? '+' : '';
+  document.getElementById('stat-positions-pnl').textContent = `${pnlSign}$${totalPnl.toFixed(2)} P&L · $${totalVal.toFixed(2)} at stake`;
+
+  tbody.innerHTML = positions.map(p => {
+    const pnl = parseFloat(p.unrealized_pnl || 0);
+    const roe = parseFloat(p.pnl_percent || 0);
+    const pnlClass = pnl >= 0 ? 'buy-label' : 'sell-label';
+    const pnlStr = (pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(2);
+    const roeStr = (roe >= 0 ? '+' : '') + roe.toFixed(1) + '%';
+    const redeemTag = p.redeemable ? ' <span style="color:#3fb950;font-size:10px;font-weight:600">● REDEEMABLE</span>' : '';
+    return `<tr>
+      <td>${p.market || '—'}${redeemTag}</td>
+      <td><span class="tag outcome">${p.outcome || '—'}</span></td>
+      <td>${parseFloat(p.shares || 0).toFixed(2)}</td>
+      <td>${fmt(p.avg_price || 0)}</td>
+      <td>${fmt(p.current_price || 0)}</td>
+      <td>$${parseFloat(p.current_value || 0).toFixed(2)}</td>
+      <td class="${pnlClass}">${pnlStr}</td>
+      <td class="${pnlClass}">${roeStr}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderPending(items) {
+  Object.values(pendingTimers).forEach(clearInterval);
+  pendingTimers = {};
+
+  document.getElementById('pending-count').textContent = items.length;
+  const container = document.getElementById('pending-container');
+
+  if (!items.length) {
+    container.innerHTML = '<div class="empty">No pending trades — the bot is watching for signals.</div>';
+    return;
+  }
+
+  container.innerHTML = items.map(t => `
+    <div class="pending-card" id="card-${t.id}">
+      <div>
+        <div class="market">${t.market_title}</div>
+        <div class="event">${t.event_title}</div>
+        <div class="meta">
+          <span class="tag ${t.source_side === 'BUY' ? 'buy' : 'sell'}">${t.source_side}</span>
+          <span class="tag outcome">${t.source_outcome}</span>
+          <span class="tag price">@ ${fmt(t.source_price)}</span>
+          <span class="tag amount">Copy $${t.copy_amount_usd}</span>
+          <span class="tag">Trader bet ${fmt(t.source_size_usd)}</span>
+        </div>
+      </div>
+      <div class="pending-actions">
+        <button class="btn btn-confirm" onclick="confirmTrade('${t.id}', this)">Confirm</button>
+        <button class="btn btn-reject" onclick="rejectTrade('${t.id}', this)">Reject</button>
+        <div class="countdown" id="timer-${t.id}"></div>
+      </div>
+    </div>
+  `).join('');
+
+  items.forEach(t => {
+    if (!t.expires_at) return;
+    pendingTimers[t.id] = setInterval(() => {
+      const secs = secondsUntil(t.expires_at);
+      const el = document.getElementById(`timer-${t.id}`);
+      if (!el) { clearInterval(pendingTimers[t.id]); return; }
+      if (secs <= 0) {
+        el.textContent = 'Expired';
+        clearInterval(pendingTimers[t.id]);
+        fetchAll();
+      } else {
+        const m = Math.floor(secs / 60), s = secs % 60;
+        el.textContent = `Expires in ${m}:${String(s).padStart(2,'0')}`;
+        el.className = 'countdown' + (secs < 60 ? ' urgent' : '');
+      }
+    }, 1000);
+  });
+}
+
+async function confirmTrade(id, btn) {
+  btn.disabled = true; btn.textContent = 'Confirming...';
+  btn.closest('.pending-card').querySelector('.btn-reject').disabled = true;
+  await fetch(`${API}/api/confirm/${id}`, { method: 'POST' });
+  fetchAll();
+}
+
+async function rejectTrade(id, btn) {
+  btn.disabled = true; btn.textContent = 'Rejecting...';
+  btn.closest('.pending-card').querySelector('.btn-confirm').disabled = true;
+  await fetch(`${API}/api/reject/${id}`, { method: 'POST' });
+  fetchAll();
+}
+
+function tradeSize(s) {
+  if (s.sizing_mode === 'BalancePercentage') return s.percentage_of_balance + '% of balance';
+  if (s.sizing_mode === 'Percentage') return s.percentage_of_original + '% of trade';
+  return '$' + s.fixed_amount_usd;
+}
+
+function renderSubscriptions(subs) {
+  const active = subs.filter(s => s.status !== 'Stopped');
+  document.getElementById('sub-count').textContent = active.length;
+  const tbody = document.getElementById('subscriptions-body');
+  if (!active.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#8b949e">No subscriptions found</td></tr>'; return; }
+  tbody.innerHTML = active.map(s => `
+    <tr>
+      <td class="trader-name">${s.nickname || '—'}</td>
+      <td class="addr">${s.followed_address.slice(0,6)}...${s.followed_address.slice(-4)}</td>
+      <td class="${statusClass(s.status)}">${s.status}</td>
+      <td>${tradeSize(s)}</td>
+      <td>${s.total_budget_usd ? '$' + s.total_budget_usd : '<span style="color:#6e7681">none</span>'}</td>
+      <td>${s.execution_mode}</td>
+      <td>${s.exit_behavior}</td>
+      <td>${s.min_time_to_resolution_hours != null ? s.min_time_to_resolution_hours + 'h' : '<span style="color:#6e7681">none</span>'}</td>
+      <td>${timeAgo(s.created_at)}</td>
+    </tr>
+  `).join('');
+}
+
+function renderExecutions(execs) {
+  document.getElementById('exec-count').textContent = execs.length;
+  const tbody = document.getElementById('executions-body');
+  if (!execs.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#8b949e">No executions yet</td></tr>'; return; }
+  tbody.innerHTML = execs.map(e => `
+    <tr>
+      <td>${e.market_title}</td>
+      <td>${e.source_outcome}</td>
+      <td class="${e.source_side === 'BUY' ? 'buy-label' : 'sell-label'}">${e.source_side}</td>
+      <td>${fmt(e.source_price)}</td>
+      <td>${fmt(e.source_size_usd)}</td>
+      <td>$${e.copy_amount_usd}</td>
+      <td class="${statusClass(e.status)}">${e.status}</td>
+      <td>${timeAgo(e.detected_at)}</td>
+    </tr>
+  `).join('');
+}
+
+fetchAll();
+setInterval(fetchAll, 30000);
+</script>
+</body>
+</html>
